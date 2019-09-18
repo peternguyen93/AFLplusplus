@@ -8,7 +8,7 @@
    TCG instrumentation and block chaining support by Andrea Biondo
                                       <andrea.biondo965@gmail.com>
 
-   QEMU 3.1.0 port, TCG thread-safety, CompareCoverage and NeverZero
+   QEMU 3.1.1 port, TCG thread-safety, CompareCoverage and NeverZero
    counters by Andrea Fioraldi <andreafioraldi@gmail.com>
 
    Copyright 2015, 2016, 2017 Google Inc. All rights reserved.
@@ -35,32 +35,27 @@
 #include "tcg.h"
 #include "tcg-op.h"
 
-/* Declared in afl-qemu-cpu-inl.h */
-extern unsigned char *afl_area_ptr;
-extern unsigned int   afl_inst_rms;
-extern abi_ulong      afl_start_code, afl_end_code;
-extern u8             afl_compcov_level;
-
-void tcg_gen_afl_compcov_log_call(void *func, target_ulong cur_loc,
-                                  TCGv_i64 arg1, TCGv_i64 arg2);
-
 static void afl_compcov_log_16(target_ulong cur_loc, target_ulong arg1,
                                target_ulong arg2) {
 
-  if ((arg1 & 0xff) == (arg2 & 0xff)) { INC_AFL_AREA(cur_loc); }
+  register uintptr_t idx = cur_loc;
+
+  if ((arg1 & 0xff) == (arg2 & 0xff)) { INC_AFL_AREA(idx); }
 
 }
 
 static void afl_compcov_log_32(target_ulong cur_loc, target_ulong arg1,
                                target_ulong arg2) {
 
+  register uintptr_t idx = cur_loc;
+
   if ((arg1 & 0xff) == (arg2 & 0xff)) {
 
-    INC_AFL_AREA(cur_loc);
+    INC_AFL_AREA(idx);
     if ((arg1 & 0xffff) == (arg2 & 0xffff)) {
 
-      INC_AFL_AREA(cur_loc + 1);
-      if ((arg1 & 0xffffff) == (arg2 & 0xffffff)) { INC_AFL_AREA(cur_loc + 2); }
+      INC_AFL_AREA(idx + 1);
+      if ((arg1 & 0xffffff) == (arg2 & 0xffffff)) { INC_AFL_AREA(idx + 2); }
 
     }
 
@@ -70,28 +65,30 @@ static void afl_compcov_log_32(target_ulong cur_loc, target_ulong arg1,
 
 static void afl_compcov_log_64(target_ulong cur_loc, target_ulong arg1,
                                target_ulong arg2) {
+  
+  register uintptr_t idx = cur_loc;
 
   if ((arg1 & 0xff) == (arg2 & 0xff)) {
 
-    INC_AFL_AREA(cur_loc);
+    INC_AFL_AREA(idx);
     if ((arg1 & 0xffff) == (arg2 & 0xffff)) {
 
-      INC_AFL_AREA(cur_loc + 1);
+      INC_AFL_AREA(idx + 1);
       if ((arg1 & 0xffffff) == (arg2 & 0xffffff)) {
 
-        INC_AFL_AREA(cur_loc + 2);
+        INC_AFL_AREA(idx + 2);
         if ((arg1 & 0xffffffff) == (arg2 & 0xffffffff)) {
 
-          INC_AFL_AREA(cur_loc + 3);
+          INC_AFL_AREA(idx + 3);
           if ((arg1 & 0xffffffffff) == (arg2 & 0xffffffffff)) {
 
-            INC_AFL_AREA(cur_loc + 4);
+            INC_AFL_AREA(idx + 4);
             if ((arg1 & 0xffffffffffff) == (arg2 & 0xffffffffffff)) {
 
-              INC_AFL_AREA(cur_loc + 5);
+              INC_AFL_AREA(idx + 5);
               if ((arg1 & 0xffffffffffffff) == (arg2 & 0xffffffffffffff)) {
 
-                INC_AFL_AREA(cur_loc + 6);
+                INC_AFL_AREA(idx + 6);
 
               }
 
@@ -136,4 +133,31 @@ static void afl_gen_compcov(target_ulong cur_loc, TCGv_i64 arg1, TCGv_i64 arg2,
   tcg_gen_afl_compcov_log_call(func, cur_loc, arg1, arg2);
 
 }
+
+#define AFL_QEMU_TARGET_i386_SNIPPET                                          \
+  if (is_persistent) {                                                        \
+                                                                              \
+    if (s->pc == afl_persistent_addr) {                                       \
+                                                                              \
+      if (afl_persistent_ret_addr == 0) {                                     \
+                                                                              \
+        TCGv_ptr stack_off_ptr = tcg_const_ptr(&persistent_stack_offset);     \
+        TCGv     stack_off = tcg_temp_new();                                  \
+        tcg_gen_ld_tl(stack_off, stack_off_ptr, 0);                           \
+        tcg_gen_sub_tl(cpu_regs[R_ESP], cpu_regs[R_ESP], stack_off);          \
+        tcg_temp_free(stack_off);                                             \
+                                                                              \
+      }                                                                       \
+      TCGv_ptr paddr = tcg_const_ptr(afl_persistent_addr);                    \
+      tcg_gen_st_tl(paddr, cpu_regs[R_ESP], 0);                               \
+      tcg_gen_afl_call0(&afl_persistent_loop);                                \
+                                                                              \
+    } else if (afl_persistent_ret_addr && s->pc == afl_persistent_ret_addr) { \
+                                                                              \
+      gen_jmp_im(s, afl_persistent_addr);                                     \
+      gen_eob(s);                                                             \
+                                                                              \
+    }                                                                         \
+                                                                              \
+  }
 

@@ -30,7 +30,7 @@
 #define MESSAGES_TO_STDOUT
 
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+#define _GNU_SOURCE 1
 #endif
 #define _FILE_OFFSET_BITS 64
 
@@ -251,6 +251,7 @@ extern u64 mem_limit;                   /* Memory cap for child (MB)        */
 
 extern u8 cal_cycles,                   /* Calibration cycles defaults      */
     cal_cycles_long, debug,             /* Debug mode                       */
+    custom_only,                        /* Custom mutator only mode         */
     python_only;                        /* Python-only mode                 */
 
 extern u32 stats_update_freq;           /* Stats update frequency (execs)   */
@@ -454,7 +455,30 @@ extern s32
 /* Python stuff */
 #ifdef USE_PYTHON
 
+// because Python sets stuff it should not ...
+#ifdef _POSIX_C_SOURCE
+  #define _SAVE_POSIX_C_SOURCE _POSIX_C_SOURCE
+  #undef _POSIX_C_SOURCE
+#endif
+#ifdef _XOPEN_SOURCE
+  #define _SAVE_XOPEN_SOURCE _XOPEN_SOURCE
+  #undef _XOPEN_SOURCE
+#endif
+
 #include <Python.h>
+
+#ifdef _SAVE_POSIX_C_SOURCE
+ #ifdef _POSIX_C_SOURCE
+  #undef _POSIX_C_SOURCE
+ #endif
+ #define _POSIX_C_SOURCE _SAVE_POSIX_C_SOURCE
+#endif
+#ifdef _SAVE_XOPEN_SOURCE
+ #ifdef _XOPEN_SOURCE
+  #undef _XOPEN_SOURCE
+ #endif
+ #define _XOPEN_SOURCE _SAVE_XOPEN_SOURCE
+#endif
 
 extern PyObject* py_module;
 

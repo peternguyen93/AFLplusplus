@@ -30,9 +30,9 @@
 
   * AFLfast's power schedules by Marcel Böhme: [https://github.com/mboehme/aflfast](https://github.com/mboehme/aflfast)
 
-  * the new excellent MOpt mutator: [https://github.com/puppet-meteor/MOpt-AFL](https://github.com/puppet-meteor/MOpt-AFL)
+  * The new excellent MOpt mutator: [https://github.com/puppet-meteor/MOpt-AFL](https://github.com/puppet-meteor/MOpt-AFL)
 
-  * instrim, a very effective CFG llvm_mode instrumentation implementation for large targets: [https://github.com/csienslab/instrim](https://github.com/csienslab/instrim)
+  * InsTrim, a very effective CFG llvm_mode instrumentation implementation for large targets: [https://github.com/csienslab/instrim](https://github.com/csienslab/instrim)
 
   * C. Holler's afl-fuzz Python mutator module and llvm_mode whitelist support: [https://github.com/choller/afl](https://github.com/choller/afl)
 
@@ -40,11 +40,21 @@
 
   * unicorn_mode which allows fuzzing of binaries from completely different platforms (integration provided by domenukk)
 
-  * laf-intel (compcov) support for llvm_mode, qemu_mode and unicorn_mode
+  * laf-intel or CompCov support for llvm_mode, qemu_mode and unicorn_mode
 
-  * neverZero patch for afl-gcc, llvm_mode, qemu_mode and unicorn_mode which prevents a wrapping map value to zero, increases coverage (by Andrea Fioraldi)
+  * NeverZero patch for afl-gcc, llvm_mode, qemu_mode and unicorn_mode which prevents a wrapping map value to zero, increases coverage
+  
+  * Persistent mode and deferred forkserver for qemu_mode
 
   A more thorough list is available in the PATCHES file.
+
+  | Feature/Instrumentation | LLVM | GCC | QEMU | Unicorn |
+  | ----------------------- |:----:|:---:|:----:| -------:|
+  | laf-intel / CompCov     |  x   |     |  x   |    x    |
+  | NeverZero               |  x   |  x  |  x   |    x    |
+  | Persistent mode         |  x   |     |  x   |         |
+  | Whitelist               |  x   |     |      |         |
+  | InsTrim                 |  x   |     |      |         |
 
   So all in all this is the best-of AFL that is currently out there :-)
 
@@ -56,6 +66,37 @@
 
   See [docs/QuickStartGuide.txt](docs/QuickStartGuide.txt) if you don't have time to
   read this file.
+
+
+## 0) Building and installing afl++
+
+afl++ has many build options.
+The easiest is to build and install everything:
+
+```shell
+$ make distrib
+$ sudo make install
+```
+
+Note that "make distrib" also builds llvm_mode, qemu_mode, unicorn_mode and
+more. If you just want plain afl then do "make all", however compiling and
+using at least llvm_mode is highly recommended for much better results -
+hence in this case 
+
+```shell
+$ make source-only
+```
+is what you should choose.
+
+These build options exist:
+
+* all: just the main afl++ binaries
+* binary-only: everything for binary-only fuzzing: qemu_mode, unicorn_mode, libdislocator, libtokencap
+* source-only: everything for source code fuzzing: llvm_mode, libdislocator, libtokencap
+* distrib: everything (for both binary-only and source code fuzzing)
+* install: installs everything you have compiled with the build options above
+* clean: cleans everything. for qemu_mode and unicorn_mode it means it deletes all downloads as well
+* help: shows these build options
 
 
 ## 1) Challenges of guided fuzzing

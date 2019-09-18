@@ -8,7 +8,7 @@
    TCG instrumentation and block chaining support by Andrea Biondo
                                       <andrea.biondo965@gmail.com>
 
-   QEMU 3.1.0 port, TCG thread-safety, CompareCoverage and NeverZero
+   QEMU 3.1.1 port, TCG thread-safety, CompareCoverage and NeverZero
    counters by Andrea Fioraldi <andreafioraldi@gmail.com>
 
    Copyright 2015, 2016, 2017 Google Inc. All rights reserved.
@@ -34,22 +34,13 @@
 #include "afl-qemu-common.h"
 #include "tcg-op.h"
 
-/* Declared in afl-qemu-cpu-inl.h */
-extern unsigned char *afl_area_ptr;
-extern unsigned int   afl_inst_rms;
-extern abi_ulong      afl_start_code, afl_end_code;
-
-void tcg_gen_afl_maybe_log_call(target_ulong cur_loc);
-
 void afl_maybe_log(target_ulong cur_loc) {
 
-  static __thread abi_ulong prev_loc;
-
-  register uintptr_t afl_idx = cur_loc ^ prev_loc;
+  register uintptr_t afl_idx = cur_loc ^ afl_prev_loc;
 
   INC_AFL_AREA(afl_idx);
 
-  prev_loc = cur_loc >> 1;
+  afl_prev_loc = cur_loc >> 1;
 
 }
 

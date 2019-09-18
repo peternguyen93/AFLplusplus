@@ -493,7 +493,7 @@ int main(int argc, char** argv) {
       case 'h':
         usage(argv[0]);
         return -1;
-        break; // not needed
+        break;  // not needed
 
       default: usage(argv[0]);
 
@@ -616,6 +616,16 @@ int main(int argc, char** argv) {
 
     /* This ensures we don't proceed to havoc/splice */
     python_only = 1;
+
+    /* Ensure we also skip all deterministic steps */
+    skip_deterministic = 1;
+
+  }
+
+  if (getenv("AFL_CUSTOM_MUTATOR_ONLY")) {
+
+    /* This ensures we don't proceed to havoc/splice */
+    custom_only = 1;
 
     /* Ensure we also skip all deterministic steps */
     skip_deterministic = 1;
