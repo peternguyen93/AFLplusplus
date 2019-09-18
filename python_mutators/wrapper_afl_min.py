@@ -6,7 +6,7 @@ from XmlMutatorMin import XmlMutatorMin
 
 __mutator__ = None
 __seed__ = "RANDOM"
-__log__ = False
+__log__ = True
 __log_file__ = "wrapper.log"
 
 # AFL functions

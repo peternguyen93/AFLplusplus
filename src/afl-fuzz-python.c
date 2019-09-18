@@ -43,6 +43,8 @@ int init_py() {
     if (py_module != NULL) {
 
       u8 py_notrim = 0;
+      u8 py_no_pre_save_handler = 0;
+
       py_functions[PY_FUNC_INIT] = PyObject_GetAttrString(py_module, "init");
       py_functions[PY_FUNC_FUZZ] = PyObject_GetAttrString(py_module, "fuzz");
       py_functions[PY_FUNC_INIT_TRIM] =
@@ -50,6 +52,7 @@ int init_py() {
       py_functions[PY_FUNC_POST_TRIM] =
           PyObject_GetAttrString(py_module, "post_trim");
       py_functions[PY_FUNC_TRIM] = PyObject_GetAttrString(py_module, "trim");
+      py_functions[PY_PRE_SAVE_HANDLER] = PyObject_GetAttrString(py_module, "pre_save_handler");
 
       for (u8 py_idx = 0; py_idx < PY_FUNC_COUNT; ++py_idx) {
 
@@ -60,6 +63,12 @@ int init_py() {
             // Implementing the trim API is optional for now
             if (PyErr_Occurred()) PyErr_Print();
             py_notrim = 1;
+
+          } else if(py_idx == PY_PRE_SAVE_HANDLER) {
+
+            // Implementing the PY_PRE_SAVE_HANDLER API is optional for now
+            if (PyErr_Occurred()) PyErr_Print();
+            py_no_pre_save_handler = 1;
 
           } else {
 
@@ -85,6 +94,17 @@ int init_py() {
             "Python module does not implement trim API, standard trimming will "
             "be used.");
 
+      }
+
+      if (py_no_pre_save_handler) {
+        py_functions[PY_PRE_SAVE_HANDLER] = NULL;
+        WARNF(
+            "Python module does not implement prev_save_handler API, standard save_handler will "
+            "be used.");
+      } else {
+        // assign pre_save_handler with py_pre_save_handler
+        ACTF("pre_save_handler is enabled");
+        pre_save_handler = py_pre_save_handler;
       }
 
       PyObject *py_args, *py_value;
@@ -191,6 +211,42 @@ void fuzz_py(char* buf, size_t buflen, char* add_buf, size_t add_buflen,
       return;
 
     }
+
+  }
+
+}
+
+size_t py_pre_save_handler(u8* data, size_t size, u8** new_data) {
+  PyObject *py_args, *py_value;
+
+  py_args = PyTuple_New(1);
+  py_value = PyByteArray_FromStringAndSize(data, size);
+
+  if (!py_value) {
+
+    Py_DECREF(py_args);
+    FATAL("Failed to convert arguments");
+
+  }
+
+  PyTuple_SetItem(py_args, 0, py_value);
+
+  py_value = PyObject_CallObject(py_functions[PY_PRE_SAVE_HANDLER], py_args);
+  Py_DECREF(py_args);
+
+  if (py_value != NULL) {
+
+    u32 new_size = PyByteArray_Size(py_value);
+    *new_data = (u8 *)malloc(new_size);
+    memcpy(*new_data, PyByteArray_AsString(py_value), new_size);
+
+    Py_DECREF(py_value);
+    return new_size;
+
+  } else {
+
+    PyErr_Print();
+    FATAL("Call failed");
 
   }
 

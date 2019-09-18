@@ -465,6 +465,7 @@ enum {
   /* 02 */ PY_FUNC_INIT_TRIM,
   /* 03 */ PY_FUNC_POST_TRIM,
   /* 04 */ PY_FUNC_TRIM,
+  /* 05 */ PY_PRE_SAVE_HANDLER, // use to fuzz some part of file
   PY_FUNC_COUNT
 
 };
@@ -484,6 +485,7 @@ u32  init_trim_py(char*, size_t);
 u32  post_trim_py(char);
 void trim_py(char**, size_t*);
 u8   trim_case_python(char**, struct queue_entry*, u8*);
+size_t py_pre_save_handler(u8*, size_t, u8**);
 #endif
 
 /* Queue */

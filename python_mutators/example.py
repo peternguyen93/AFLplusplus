@@ -16,6 +16,16 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import random
 
+def pre_save_handler(testcase):
+    '''
+    Called before testcase is written in .cur_input
+    
+    @type testcase : bytes
+    @parram testcase : current testcase buffer
+    '''
+
+    return bytearray(testcase)
+
 def init(seed):
     '''
     Called once when AFLFuzz starts up. Used to seed our RNG.

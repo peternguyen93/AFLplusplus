@@ -247,6 +247,20 @@ u8 run_target(char** argv, u32 timeout) {
    is unlinked and a new one is created. Otherwise, out_fd is rewound and
    truncated. */
 
+void pre_handler_write (s32 fd, void *mem, u32 len, u8 *fn){
+  if (pre_save_handler) {
+    u8*    new_data = NULL;
+    size_t new_size = pre_save_handler(mem, len, &new_data);
+    if(new_data) {
+      ck_write(fd, new_data, new_size, fn);
+      free(new_data);
+    }
+  } else {
+    ck_write(fd, mem, len, fn);
+  }
+}
+
+
 void write_to_testcase(void* mem, u32 len) {
 
   s32 fd = out_fd;
@@ -263,17 +277,7 @@ void write_to_testcase(void* mem, u32 len) {
 
     lseek(fd, 0, SEEK_SET);
 
-  if (pre_save_handler) {
-
-    u8*    new_data;
-    size_t new_size = pre_save_handler(mem, len, &new_data);
-    ck_write(fd, new_data, new_size, out_file);
-
-  } else {
-
-    ck_write(fd, mem, len, out_file);
-
-  }
+  pre_handler_write(fd, mem, len, out_file);
 
   if (!out_file) {
 
@@ -305,10 +309,10 @@ void write_with_gap(void* mem, u32 len, u32 skip_at, u32 skip_len) {
 
     lseek(fd, 0, SEEK_SET);
 
-  if (skip_at) ck_write(fd, mem, skip_at, out_file);
+  if (skip_at) pre_handler_write(fd, mem, skip_at, out_file);
 
   u8* memu8 = mem;
-  if (tail_len) ck_write(fd, memu8 + skip_at + skip_len, tail_len, out_file);
+  if (tail_len) pre_handler_write(fd, memu8 + skip_at + skip_len, tail_len, out_file);
 
   if (!out_file) {
 
