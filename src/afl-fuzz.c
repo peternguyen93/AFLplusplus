@@ -30,8 +30,13 @@
 static void usage(u8* argv0) {
 
 #ifdef USE_PYTHON
-#define PHYTON_SUPPORT \
-  "Compiled with Python 2.7 module support, see docs/python_mutators.txt\n"
+  #ifdef USE_PYTHON2
+    #define PHYTON_SUPPORT \
+    "Compiled with Python 2.7 module support, see docs/python_mutators.txt\n"
+  #else
+    #define PHYTON_SUPPORT \
+    "Compiled with Python 3.x module support, see docs/python_mutators.txt\n"
+  #endif
 #else
 #define PHYTON_SUPPORT ""
 #endif

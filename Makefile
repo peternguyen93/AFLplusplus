@@ -39,8 +39,6 @@ CFLAGS     += -Wall -D_FORTIFY_SOURCE=2 -g -Wno-pointer-sign -I include/ \
 
 AFL_FUZZ_FILES = $(wildcard src/afl-fuzz*.c)
 
-PYTHON_INCLUDE	?= /usr/include/python2.7
-
 ifneq "$(filter Linux GNU%,$(shell uname))" ""
   LDFLAGS  += -ldl
 endif
@@ -53,15 +51,28 @@ endif
 
 COMM_HDR    = include/alloc-inl.h include/config.h include/debug.h include/types.h
 
+ifeq "$(DUSE_PYTHON2)" "1"
+# 	PYTHON_INCLUDE = $(PYTHON2_INCLUDE)
+	PYTHON_CONFIG := $(shell echo "`python2-config --includes` `python2-config --ldflags`")
+	PYTHON_VERSION = python2
+else
+# 	PYTHON_INCLUDE = $(PYTHON3_INCLUDE)
+	PYTHON_CONFIG=$(shell echo "`python3-config --includes` `python3-config --ldflags`")
+	PYTHON_VERSION = python3
+endif
 
-ifeq "$(shell echo '\#include <Python.h>@int main() {return 0; }' | tr @ '\n' | $(CC) -x c - -o .test -I$(PYTHON_INCLUDE) -lpython2.7 2>/dev/null && echo 1 || echo 0 )" "1"
+ifeq "$(shell echo '\#include <Python.h>@int main() {return 0; }' | tr @ '\n' | $(CC) -x c - -o .test $(PYTHON_CONFIG) 2>/dev/null && echo 1 || echo 0 )" "1"
 	PYTHON_OK=1
-	PYFLAGS=-DUSE_PYTHON -I$(PYTHON_INCLUDE) -lpython2.7
+
+	ifeq "$(PYTHON_VERSION)" "python2"
+		PYFLAGS=-DUSE_PYTHON -DUSE_PYTHON2 $(PYTHON_CONFIG)
+	else
+		PYFLAGS=-DUSE_PYTHON $(PYTHON_CONFIG)
+	endif
 else
 	PYTHON_OK=0
 	PYFLAGS=
 endif
-
 
 ifeq "$(shell echo '\#include <sys/ipc.h>@\#include <sys/shm.h>@int main() { int _id = shmget(IPC_PRIVATE, 65536, IPC_CREAT | IPC_EXCL | 0600); shmctl(_id, IPC_RMID, 0); return 0;}' | tr @ '\n' | $(CC) -x c - -o .test2 2>/dev/null && echo 1 || echo 0 )" "1"
 	SHMAT_OK=1
@@ -78,7 +89,7 @@ ifeq "$(TEST_MMAP)" "1"
 endif
 
 
-all:	test_x86 test_shm test_python27 ready $(PROGS) afl-as test_build all_done
+all:	test_x86 test_shm test_python ready $(PROGS) afl-as test_build all_done
 
 
 help:
@@ -126,15 +137,17 @@ endif
 
 ifeq "$(PYTHON_OK)" "1"
 
-test_python27:
+test_python:
 	@rm -f .test 2> /dev/null
-	@echo "[+] Python 2.7 support seems to be working."
-
+	if [ "$(PYTHON_VERSION)" = "python2" ]; \
+	then \
+		echo "[+] Python 2.x support seems to be working."; \
+	else \
+		echo "[+] Python 3.x support seems to be working."; \
+	fi
 else
-
-test_python27:
-	@echo "[-] You seem to need to install the package python2.7-dev, but it is optional so we continue"
-
+test_python:
+	@echo "[-] You seem to need to install the package python-dev, but it is optional so we continue"
 endif
 
 

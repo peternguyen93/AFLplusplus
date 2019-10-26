@@ -35,7 +35,11 @@ int init_py() {
 
   if (module_name) {
 
+#ifdef USE_PYTHON2
     PyObject* py_name = PyString_FromString(module_name);
+#else
+     PyObject* py_name = PyUnicode_FromString(module_name);
+#endif
 
     py_module = PyImport_Import(py_name);
     Py_DECREF(py_name);
@@ -111,7 +115,11 @@ int init_py() {
 
       /* Provide the init function a seed for the Python RNG */
       py_args = PyTuple_New(1);
+#ifdef USE_PYTHON2
       py_value = PyInt_FromLong(UR(0xFFFFFFFF));
+#else
+      py_value = PyLong_FromLong(UR(0xFFFFFFFF));
+#endif
       if (!py_value) {
 
         Py_DECREF(py_args);
@@ -271,8 +279,11 @@ u32 init_trim_py(char* buf, size_t buflen) {
   Py_DECREF(py_args);
 
   if (py_value != NULL) {
-
+#ifdef USE_PYTHON2
     u32 retcnt = PyInt_AsLong(py_value);
+#else
+    u32 retcnt = PyLong_AsLong(py_value);
+#endif
     Py_DECREF(py_value);
     return retcnt;
 
@@ -306,7 +317,11 @@ u32 post_trim_py(char success) {
 
   if (py_value != NULL) {
 
+#ifdef USE_PYTHON2
     u32 retcnt = PyInt_AsLong(py_value);
+#else
+    u32 retcnt = PyLong_AsLong(py_value);
+#endif
     Py_DECREF(py_value);
     return retcnt;
 
