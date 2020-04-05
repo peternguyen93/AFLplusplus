@@ -207,6 +207,11 @@ void fuzz_py(char* buf, size_t buflen, char* add_buf, size_t add_buflen,
 
     if (py_value != NULL) {
 
+      if(!PyByteArray_Check(py_value)){
+        PyErr_Print();
+        FATAL("return value of fuzz() must be bytearray");
+      }
+
       *retlen = PyByteArray_Size(py_value);
       *ret = malloc(*retlen);
       memcpy(*ret, PyByteArray_AsString(py_value), *retlen);
@@ -215,8 +220,7 @@ void fuzz_py(char* buf, size_t buflen, char* add_buf, size_t add_buflen,
     } else {
 
       PyErr_Print();
-      fprintf(stderr, "Call failed\n");
-      return;
+      FATAL("Call failed\n");
 
     }
 
@@ -243,6 +247,11 @@ size_t py_pre_save_handler(u8* data, size_t size, u8** new_data) {
   Py_DECREF(py_args);
 
   if (py_value != NULL) {
+
+    if(!PyByteArray_Check(py_value)){
+      PyErr_Print();
+      FATAL("return value of pre_save_handler must be bytearray");
+    }
 
     u32 new_size = PyByteArray_Size(py_value);
     *new_data = (u8 *)malloc(new_size);
@@ -343,6 +352,11 @@ void trim_py(char** ret, size_t* retlen) {
   Py_DECREF(py_args);
 
   if (py_value != NULL) {
+
+    if(!PyByteArray_Check(py_value)){
+      PyErr_Print();
+      FATAL("return value of trim() must be bytearray");
+    }
 
     *retlen = PyByteArray_Size(py_value);
     *ret = malloc(*retlen);
